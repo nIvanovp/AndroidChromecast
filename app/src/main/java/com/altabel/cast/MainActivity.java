@@ -9,17 +9,14 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.media.*;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ListView;
 import com.altabel.cast.adapter.AdapterListChannels;
 import com.altabel.cast.item.Channel;
 import com.altabel.cast.item.MediaTVItem;
 import com.altabel.cast.parser.JsonUTF8Request;
 import com.android.volley.*;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.cast.CastDevice;
 import com.google.android.gms.cast.CastMediaControlIntent;
 import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
@@ -36,179 +33,158 @@ import java.util.List;
 import static com.altabel.cast.utils.LoggerUtils.i;
 
 public class MainActivity extends BaseCastActivity {
+    private static final String TAG = "MainActivity";
+    private static final String ACTION_RECEIVE_SESSION_STATUS_UPDATE = "com.altabel.cast.RECEIVE_SESSION_STATUS_UPDATE";
+    private static final String ACTION_RECEIVE_MEDIA_STATUS_UPDATE = "com.altabel.cast.RECEIVE_MEDIA_STATUS_UPDATE";
     private static final int REQUEST_GMS_ERROR = 0;
-    AdapterListChannels adapterListChannels;
+    private AdapterListChannels adapterListChannels;
     private RequestQueue requestQueue;
     private JsonUTF8Request jsonUTF8Request;
-    ArrayList<Channel> channels = new ArrayList<Channel>();
-
-    private static final String TAG = "MrpCastPlayerActivity";
-    private static final String ACTION_RECEIVE_SESSION_STATUS_UPDATE =
-            "com.google.android.gms.cast.samples.democastplayer.RECEIVE_SESSION_STATUS_UPDATE";
-    private static final String ACTION_RECEIVE_MEDIA_STATUS_UPDATE =
-            "com.google.android.gms.cast.samples.democastplayer.RECEIVE_MEDIA_STATUS_UPDATE";
-
+    private ArrayList<Channel> channels = new ArrayList<Channel>();
     private MediaRouter.RouteInfo mCurrentRoute;
-    private String mLastRouteId;
     private String mSessionId;
-    private boolean mSessionActive;
+    private boolean isSessionActive;
+    private boolean isDeviceConnected;
     private PendingIntent mSessionStatusUpdateIntent;
     private IntentFilter mSessionStatusBroadcastIntentFilter;
     private BroadcastReceiver mSessionStatusBroadcastReceiver;
-    private String mCurrentItemId;
     private PendingIntent mMediaStatusUpdateIntent;
     private IntentFilter mMediaStatusBroadcastIntentFilter;
     private BroadcastReceiver mMediaStatusBroadcastReceiver;
-    private long mStreamPositionTimestamp;
-    private long mLastKnownStreamPosition;
-    private long mStreamDuration;
-    private boolean mStreamAdvancing;
     private ResultBundleHandler mMediaResultHandler;
-
-    private interface ResultBundleHandler {
-        public void handleResult(Bundle bundle);
-    }
+    private String mLastRouteId;
+    private MediaInfo tvMediaInfo;
+    private String mCurrentItemId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Construct a broadcast receiver and a PendingIntent for receiving session status
-        // updates from the MRP.
         mSessionStatusBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.d(TAG, "Got a session status broadcast intent from the MRP: " + intent);
+                i("Got a session status broadcast intent from the MRP: " + intent);
                 processSessionStatusBundle(intent.getExtras());
             }
         };
-        mSessionStatusBroadcastIntentFilter = new IntentFilter(
-                ACTION_RECEIVE_SESSION_STATUS_UPDATE);
+
+        mSessionStatusBroadcastIntentFilter = new IntentFilter(ACTION_RECEIVE_SESSION_STATUS_UPDATE);
 
         Intent intent = new Intent(ACTION_RECEIVE_SESSION_STATUS_UPDATE);
         intent.setComponent(getCallingActivity());
-        mSessionStatusUpdateIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        mSessionStatusUpdateIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        // Construct a broadcast receiver and a PendingIntent for receiving media status
-        // updates from the MRP.
         mMediaStatusBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.d(TAG, "Got a media status broadcast intent from the MRP: " + intent);
-//                processMediaStatusBundle(intent.getExtras());
+                i("Got a media status broadcast intent from the MRP: " + intent);
             }
         };
         mMediaStatusBroadcastIntentFilter = new IntentFilter(ACTION_RECEIVE_MEDIA_STATUS_UPDATE);
 
         intent = new Intent(ACTION_RECEIVE_MEDIA_STATUS_UPDATE);
         intent.setComponent(getCallingActivity());
-        mMediaStatusUpdateIntent = PendingIntent.getBroadcast(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        mMediaStatusUpdateIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         mMediaResultHandler = new ResultBundleHandler() {
-
             @Override
             public void handleResult(Bundle bundle) {
-//                processMediaStatusBundle(bundle);
             }
         };
+
         requestQueue = Volley.newRequestQueue(this);
+        loadListTask();
+        disableView(mVolumeBar, true);
+        disableView(mStopButton, true);
     }
 
-//    private void processMediaStatusBundle(Bundle statusBundle) {
-//        Log.d(TAG, "processMediaStatusBundle()");
-//        String itemId = statusBundle.getString(MediaControlIntent.EXTRA_ITEM_ID);
-//        Log.d(TAG, "itemId = " + itemId);
-//
-//        String title = null;
-//        String artist = null;
-//        Uri imageUrl = null;
-//
-//        // Extract item metadata, if available.
-//        if (statusBundle.containsKey(MediaControlIntent.EXTRA_ITEM_METADATA)) {
-//            Bundle metadataBundle = (Bundle) statusBundle.getParcelable(
-//                    MediaControlIntent.EXTRA_ITEM_METADATA);
-//
-//            title = metadataBundle.getString(MediaItemMetadata.KEY_TITLE);
-//            artist = metadataBundle.getString(MediaItemMetadata.KEY_ARTIST);
-//            if (metadataBundle.containsKey(MediaItemMetadata.KEY_ARTWORK_URI)) {
-//                imageUrl = Uri.parse(metadataBundle.getString(MediaItemMetadata.KEY_ARTWORK_URI));
-//            }
-//        } else {
-//            Log.d(TAG, "status bundle had no metadata!");
-//        }
-//
-//        // Extract the item status, if available.
-//        if ((itemId != null) && statusBundle.containsKey(MediaControlIntent.EXTRA_ITEM_STATUS)) {
-//            Bundle itemStatusBundle = (Bundle) statusBundle.getParcelable(MediaControlIntent.EXTRA_ITEM_STATUS);
-//            MediaItemStatus itemStatus = MediaItemStatus.fromBundle(itemStatusBundle);
-//
-//            int playbackState = itemStatus.getPlaybackState();
-//            Log.d(TAG, "playbackState=" + playbackState);
-//
-//            if ((playbackState == MediaItemStatus.PLAYBACK_STATE_CANCELED)
-//                    || (playbackState == MediaItemStatus.PLAYBACK_STATE_INVALIDATED)
-//                    || (playbackState == MediaItemStatus.PLAYBACK_STATE_ERROR)
-//                    || (playbackState == MediaItemStatus.PLAYBACK_STATE_FINISHED)) {
-////                clearCurrentMediaItem();
-//                mStreamAdvancing = false;
-//            } else if ((playbackState == MediaItemStatus.PLAYBACK_STATE_PAUSED)
-//                    || (playbackState == MediaItemStatus.PLAYBACK_STATE_PLAYING)
-//                    || (playbackState == MediaItemStatus.PLAYBACK_STATE_BUFFERING)) {
-//
-//                int playerState = PLAYER_STATE_NONE;
-//                if (playbackState == MediaItemStatus.PLAYBACK_STATE_PAUSED) {
-//                    playerState = PLAYER_STATE_PAUSED;
-//                } else if (playbackState == MediaItemStatus.PLAYBACK_STATE_PLAYING) {
-//                    playerState = PLAYER_STATE_PLAYING;
-//                } else if (playbackState == MediaItemStatus.PLAYBACK_STATE_BUFFERING) {
-//                    playerState = PLAYER_STATE_BUFFERING;
-//                }
-//
-//                setPlayerState(playerState);
-//                mCurrentItemId = itemId;
-//                setCurrentMediaMetadata(title, artist, imageUrl);
-//                updateButtonStates();
-//
-//                mStreamDuration = itemStatus.getContentDuration();
-//                mLastKnownStreamPosition = itemStatus.getContentPosition();
-//                mStreamPositionTimestamp = itemStatus.getTimestamp();
-//
-//                Log.d(TAG, "stream position now: " + mLastKnownStreamPosition);
-//
-//                // Only refresh playback position if stream is moving.
-//                mStreamAdvancing = (playbackState == MediaItemStatus.PLAYBACK_STATE_PLAYING);
-//                if (mStreamAdvancing) {
-//                    refreshPlaybackPosition(mLastKnownStreamPosition, mStreamDuration);
-//                }
-//            } else {
-//                Log.d(TAG, "Unexpected playback state: " + playbackState);
-//            }
-//
-//            Bundle extras = itemStatus.getExtras();
-//            if (extras != null) {
-//                if (extras.containsKey(MediaItemStatus.EXTRA_HTTP_STATUS_CODE)) {
-//                    int httpStatus = extras.getInt(MediaItemStatus.EXTRA_HTTP_STATUS_CODE);
-//                    Log.d(TAG, "HTTP status: " + httpStatus);
-//                }
-//                if (extras.containsKey(MediaItemStatus.EXTRA_HTTP_RESPONSE_HEADERS)) {
-//                    Bundle headers = extras.getBundle(MediaItemStatus.EXTRA_HTTP_RESPONSE_HEADERS);
-//                    Log.d(TAG, "HTTP headers: " + headers);
-//                }
-//            }
-//        }
-//    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        int errorCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+        if (errorCode != ConnectionResult.SUCCESS) {
+            GooglePlayServicesUtil.getErrorDialog(errorCode, this, REQUEST_GMS_ERROR).show();
+        }
+
+        mListView.setOnItemClickListener(itemListViewListener);
+        registerReceiver(mSessionStatusBroadcastReceiver, mSessionStatusBroadcastIntentFilter);
+        registerReceiver(mMediaStatusBroadcastReceiver, mMediaStatusBroadcastIntentFilter);
+        requestSessionStatus();
+    }
+
+    @Override
+    protected void onPause() {
+        unregisterReceiver(mSessionStatusBroadcastReceiver);
+        unregisterReceiver(mMediaStatusBroadcastReceiver);
+        super.onPause();
+    }
+
+    @Override
+    protected void onRouteSelected(MediaRouter.RouteInfo route) {
+        setSelectedRoute(route);
+        String routeId = route.getId();
+        if (routeId.equals(mLastRouteId) && (mSessionId != null)) {
+            i("Trying to rejoin previous session");
+            requestSessionStatus();
+        }
+        mLastRouteId = routeId;
+        isDeviceConnected = true;
+        startSession();
+    }
+
+    @Override
+    protected void onRouteUnselected(MediaRouter.RouteInfo route) {
+        endSession();
+        isSessionActive = false;
+        isDeviceConnected = false;
+        mSessionId = null;
+        disableView(mVolumeBar, true);
+        disableView(mStopButton, true);
+    }
+
+    @Override
+    protected void onStopClicked() {
+        i("onStopClicked");
+        if (TextUtils.isEmpty(mCurrentItemId))
+            return;
+
+        Intent intent = new Intent(MediaControlIntent.ACTION_STOP);
+        intent.addCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK);
+        intent.putExtra(MediaControlIntent.EXTRA_SESSION_ID, mSessionId);
+        sendIntentToRoute(intent, mMediaResultHandler);
+
+        disableView(mVolumeBar, true);
+        disableView(mStopButton, true);
+    }
+
+    @Override
+    protected void onConnected(Bundle bundle) {
+    }
+
+    @Override
+    protected void onVolumeChange(double delta) {
+        if (mCurrentRoute != null) {
+            mCurrentRoute.requestUpdateVolume((int) (delta * MAX_VOLUME_LEVEL));
+            refreshDeviceVolume(mCurrentRoute.getVolume() / MAX_VOLUME_LEVEL, false);
+        }
+    }
+
+    @Override
+    protected void onDeviceVolumeBarMoved(int volume) {
+        if (mCurrentRoute != null) {
+            mCurrentRoute.requestSetVolume(volume);
+        }
+    }
 
     private void processSessionStatusBundle(Bundle statusBundle) {
-        Log.d(TAG, "processSessionStatusBundle()");
+        i("processSessionStatusBundle()");
 
         String sessionId = statusBundle.getString(MediaControlIntent.EXTRA_SESSION_ID);
         MediaSessionStatus status = MediaSessionStatus.fromBundle(
                 statusBundle.getBundle(MediaControlIntent.EXTRA_SESSION_STATUS));
         int sessionState = status.getSessionState();
 
-        Log.d(TAG, "got a session status update for session " + sessionId + ", state = "
+        i("got a session status update for session " + sessionId + ", state = "
                 + sessionState + ", mSessionId=" + mSessionId);
 
         if (mSessionId == null) {
@@ -217,38 +193,38 @@ public class MainActivity extends BaseCastActivity {
 
         if (!mSessionId.equals(sessionId)) {
             // Got status on a session other than the one we're tracking. Ignore it.
-            Log.d(TAG, "Received status for unknown session: " + sessionId);
+            i("Received status for unknown session: " + sessionId);
             return;
         }
 
         switch (sessionState) {
             case MediaSessionStatus.SESSION_STATE_ACTIVE:
-                Log.d(TAG, "session " + sessionId + " is ACTIVE");
-                mSessionActive = true;
+                i("session " + sessionId + " is ACTIVE");
+                isSessionActive = true;
                 syncStatus();
                 break;
 
             case MediaSessionStatus.SESSION_STATE_ENDED:
-                Log.d(TAG, "session " + sessionId + " is ENDED");
+                i("session " + sessionId + " is ENDED");
                 mSessionId = null;
-                mSessionActive = false;
-//                clearCurrentMediaItem();
+                isSessionActive = false;
                 break;
 
             case MediaSessionStatus.SESSION_STATE_INVALIDATED:
-                Log.d(TAG, "session " + sessionId + " is INVALIDATED");
+                i("session " + sessionId + " is INVALIDATED");
                 mSessionId = null;
-                mSessionActive = false;
-//                clearCurrentMediaItem();
+                isSessionActive = false;
                 break;
 
             default:
-                Log.d(TAG, "Received unexpected session state: " + sessionState);
+                i("Received unexpected session state: " + sessionState);
                 break;
         }
     }
 
     private void loadListTask(){
+        disableView(mListView, true);
+        showView(mRelativeProgressBar, true);
         jsonUTF8Request = new JsonUTF8Request(
                 Request.Method.GET,
                 getString(R.string.url_live_stream),
@@ -275,6 +251,9 @@ public class MainActivity extends BaseCastActivity {
                 }
 
                 setListViewData(channels);
+
+                disableView(mListView, false);
+                showView(mRelativeProgressBar, false);
             }
         };
     }
@@ -284,45 +263,42 @@ public class MainActivity extends BaseCastActivity {
             @Override
             public void onErrorResponse(VolleyError error) {
                 i("TV Response error:" + error.getMessage());
-            }
+                disableView(mListView, false);
+                showView(mRelativeProgressBar, false);
+                showMsgDialog(error.getMessage(), getString(R.string.dialog_yes), null, INTERNET_CONNECTION_DIALOG);
+            } // todo processing
         };
     }
 
     private void setListViewData(ArrayList<Channel> channels){
         adapterListChannels = new AdapterListChannels(this, R.layout.item_channel, channels);
-        listView.setAdapter(adapterListChannels);
+        mListView.setAdapter(adapterListChannels);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        int errorCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
-        if (errorCode != ConnectionResult.SUCCESS) {
-            GooglePlayServicesUtil.getErrorDialog(errorCode, this, REQUEST_GMS_ERROR).show();
-        }
-
-        loadListTask();
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                AdapterListChannels adapterListChannels1 = (AdapterListChannels)parent.getAdapter();
-                Channel item = adapterListChannels1.getItem(position);
+    AdapterView.OnItemClickListener itemListViewListener = new AdapterView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            if(isDeviceConnected && isSessionActive) {
+                AdapterListChannels adapter = (AdapterListChannels) parent.getAdapter();
+                Channel item = adapter.getItem(position);
+                mCurrentItemId = item.getChannelId();
+                mCurChannelName.setText(item.getName());
                 playLiveStream(item.convertToMediaInfo());
-            }
-        });
-    }
-
-    MediaInfo tvMediaInfo;
+            }else
+                showMsgDialog(getString(R.string.err_device_connect), getString(R.string.dialog_yes), null, INTERNET_CONNECTION_DIALOG);
+        }
+    };
 
     private void playLiveStream(MediaInfo mediaInfo){
-//        loadInProgress(true);
         tvMediaInfo = mediaInfo;
+        disableView(mListView, true);
+        showView(mRelativeProgressBar, true);
         jsonUTF8Request = new JsonUTF8Request(
                 Request.Method.GET,
                 mediaInfo.getContentId(),
                 null,
-                responseListener1(),
-                responseError1());
+                liveStreamResponseListener(),
+                liveStreamResponseError());
         jsonUTF8Request.setRetryPolicy(new DefaultRetryPolicy(
                 10000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
@@ -330,19 +306,23 @@ public class MainActivity extends BaseCastActivity {
         requestQueue.add(jsonUTF8Request);
     }
 
-    private Response.Listener<JSONObject> responseListener1(){
+    private Response.Listener<JSONObject> liveStreamResponseListener(){
         return new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
                 i("TV MediaInfo Response:" + response.toString());
                 MediaTVItem mediaTVItem = new MediaTVItem(tvMediaInfo, response);
                 sendIntentToRoute(mediaTVItem.getMediaInfo());
-//                loadInProgress(false);
+
+                disableView(mListView, false);
+                showView(mRelativeProgressBar, false);
+                disableView(mVolumeBar, false);
+                disableView(mStopButton, false);
             }
         };
     }
 
-    private Response.ErrorListener responseError1(){
+    private Response.ErrorListener liveStreamResponseError(){
         return new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
@@ -357,35 +337,24 @@ public class MainActivity extends BaseCastActivity {
                     i("NoConnectionError:" + error.getMessage());
                 } else if( error instanceof TimeoutError) {
                     i("TimeoutError:" + error.getMessage());
-                }
-//                loadInProgress(false);
+                } // todo processing
+
+                disableView(mListView, false);
+                showView(mRelativeProgressBar, false);
+                disableView(mVolumeBar, true);
+                disableView(mStopButton, true);
+                showMsgDialog(error.getMessage(), getString(R.string.dialog_yes), null, INTERNET_CONNECTION_DIALOG);
             }
         };
     }
 
-    @Override
-    protected void onRouteSelected(MediaRouter.RouteInfo route) {
+    private void setSelectedRoute(MediaRouter.RouteInfo route) {
         mCurrentRoute = route;
-        CastDevice device = CastDevice.getFromBundle(route.getExtras());
-        setSelectedDevice(device);
-    }
-
-    @Override
-    protected void onRouteUnselected(MediaRouter.RouteInfo route) {
-        setSelectedDevice(null);
-        mSessionActive = false;
-        mSessionId = null;
-    }
-
-    @Override
-    protected void onConnected(Bundle bundle) {
-        i("startSession");
-        startSession();
     }
 
     private void sendIntentToRoute(MediaInfo media){
         MediaMetadata metadata = media.getMetadata();
-        Log.d("TAG", "Casting " + metadata.getString(MediaMetadata.KEY_TITLE) + " (" + media.getContentType() + ")");
+        i("Casting " + metadata.getString(MediaMetadata.KEY_TITLE) + " (" + media.getContentType() + ")");
 
         Intent intent = new Intent(MediaControlIntent.ACTION_PLAY);
         intent.addCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK);
@@ -423,68 +392,62 @@ public class MainActivity extends BaseCastActivity {
 
     private void sendIntentToRoute(final Intent intent, final ResultBundleHandler resultHandler) {
         String sessionId = intent.getStringExtra(MediaControlIntent.EXTRA_SESSION_ID);
-        Log.d(TAG, "sending intent to route: " + intent + ", session: " + sessionId);
+        i("Sending intent to route: " + intent + ", session: " + sessionId);
         if ((mCurrentRoute == null) || !mCurrentRoute.supportsControlRequest(intent)) {
-            Log.d(TAG, "route is null or doesn't support this request");
+            i("route is null or doesn't support this request");
             return;
         }
 
         mCurrentRoute.sendControlRequest(intent, new MediaRouter.ControlRequestCallback() {
             @Override
             public void onResult(Bundle data) {
-                Log.d(TAG, "got onResult for " + intent.getAction() + " with bundle " + data);
+                i("got onResult for " + intent.getAction() + " with bundle " + data);
                 if (data != null) {
                     if (resultHandler != null) {
                         resultHandler.handleResult(data);
                     }
                 } else {
-                    Log.w(TAG, "got onResult with a null bundle");
+                    i("got onResult with a null bundle");
                 }
             }
 
             @Override
             public void onError(String message, Bundle data) {
-//                showErrorDialog(message != null ? message : getString(R.string.mrp_request_failed));
-                //todo
+                showMsgDialog(message != null ? message : getString(R.string.err_request_failed), getString(R.string.dialog_yes), null, INTERNET_CONNECTION_DIALOG);
             }
         });
     }
 
-    // Session control.
-
     private void startSession() {
         Intent intent = new Intent(MediaControlIntent.ACTION_START_SESSION);
         intent.addCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK);
-        intent.putExtra(MediaControlIntent.EXTRA_SESSION_STATUS_UPDATE_RECEIVER,
-                mSessionStatusUpdateIntent);
-        intent.putExtra(CastMediaControlIntent.EXTRA_CAST_APPLICATION_ID,
-                getReceiverApplicationId());
-        intent.putExtra(CastMediaControlIntent.EXTRA_CAST_RELAUNCH_APPLICATION, false);
+        intent.putExtra(MediaControlIntent.EXTRA_SESSION_STATUS_UPDATE_RECEIVER, mSessionStatusUpdateIntent);
+        intent.putExtra(CastMediaControlIntent.EXTRA_CAST_APPLICATION_ID, getReceiverApplicationId());
+        intent.putExtra(CastMediaControlIntent.EXTRA_CAST_RELAUNCH_APPLICATION, true);
         intent.putExtra(CastMediaControlIntent.EXTRA_DEBUG_LOGGING_ENABLED, true);
         intent.putExtra(CastMediaControlIntent.EXTRA_CAST_STOP_APPLICATION_WHEN_SESSION_ENDS, false);
         sendIntentToRoute(intent, new ResultBundleHandler() {
             @Override
             public void handleResult(Bundle bundle) {
                 mSessionId = bundle.getString(MediaControlIntent.EXTRA_SESSION_ID);
-                Log.d(TAG, "Got a session ID of: " + mSessionId);
+                i("Got a session ID of: " + mSessionId);
+                isSessionActive = true;
             }
         });
     }
 
     private void syncStatus() {
-        Log.d(TAG, "Invoking SYNC_STATUS request");
+        i("Invoking SYNC_STATUS request");
         Intent intent = new Intent(CastMediaControlIntent.ACTION_SYNC_STATUS);
         intent.addCategory(CastMediaControlIntent.categoryForRemotePlayback());
         intent.putExtra(MediaControlIntent.EXTRA_SESSION_ID, mSessionId);
-        intent.putExtra(MediaControlIntent.EXTRA_ITEM_STATUS_UPDATE_RECEIVER,
-                mMediaStatusUpdateIntent);
+        intent.putExtra(MediaControlIntent.EXTRA_ITEM_STATUS_UPDATE_RECEIVER, mMediaStatusUpdateIntent);
         sendIntentToRoute(intent, mMediaResultHandler);
     }
 
     private void requestSessionStatus() {
-        if (mSessionId == null) {
+        if (mSessionId == null)
             return;
-        }
 
         Intent intent = new Intent(MediaControlIntent.ACTION_GET_SESSION_STATUS);
         intent.addCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK);
@@ -493,9 +456,8 @@ public class MainActivity extends BaseCastActivity {
     }
 
     private void endSession() {
-        if (mSessionId == null) {
+        if (mSessionId == null)
             return;
-        }
 
         Intent intent = new Intent(MediaControlIntent.ACTION_END_SESSION);
         intent.addCategory(MediaControlIntent.CATEGORY_REMOTE_PLAYBACK);
@@ -503,13 +465,15 @@ public class MainActivity extends BaseCastActivity {
         sendIntentToRoute(intent, new ResultBundleHandler() {
             @Override
             public void handleResult(final Bundle bundle) {
-                MediaSessionStatus status = MediaSessionStatus.fromBundle(
-                        bundle.getBundle(MediaControlIntent.EXTRA_SESSION_STATUS));
+                MediaSessionStatus status = MediaSessionStatus.fromBundle(bundle.getBundle(MediaControlIntent.EXTRA_SESSION_STATUS));
                 int sessionState = status.getSessionState();
-                Log.d(TAG, "session state after ending session: " + sessionState);
-//                clearCurrentMediaItem();
+                i("session state after ending session: " + sessionState);
             }
         });
         mSessionId = null;
+    }
+
+    private interface ResultBundleHandler {
+        public void handleResult(Bundle bundle);
     }
 }

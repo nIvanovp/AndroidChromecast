@@ -18,10 +18,12 @@ public class Channel {
     private static final String CHANNEL_URL = "url";
     private static final String CHANNEL_NAME = "name";
     private static final String CHANNEL_IMAGE = "image_url";
+    private static final String CHANNEL_DESCRIPTION = "description";
     private String channelId;
     private String name;
     private String imageUrl;
     private String url;
+    private String description;
     private String mimeType = "video/mp4";
 
     public Channel(JSONObject jsonObject) {
@@ -55,9 +57,18 @@ public class Channel {
             this.setName(jsonChannel.getString(CHANNEL_NAME));
             this.setUrl(jsonChannel.getString(CHANNEL_URL));
             this.setImageUrl(jsonChannel.getString(CHANNEL_IMAGE));
+            this.setDescription(jsonChannel.getString(CHANNEL_DESCRIPTION));
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getChannelId() {

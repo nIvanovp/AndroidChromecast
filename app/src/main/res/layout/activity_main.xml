@@ -1,8 +1,87 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+    <RelativeLayout
+            android:orientation="vertical"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:id="@+id/relativeProgressBar" android:visibility="gone">
+        <include android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 layout="@layout/progress"/>
+    </RelativeLayout>
+    <View   android:id="@+id/seek_controls_separator"
+            style="@style/Separator" android:layout_below="@+id/listView"/>
+    <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/reletiveControl"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="5dp">
+
+
+        <!-- device volume controls -->
+
+        <LinearLayout
+                android:id="@+id/device_volume_controls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="5dp"
+                android:layout_marginTop="15dp"
+                android:gravity="center_horizontal"
+                android:orientation="horizontal" >
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginLeft="15dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_weight="0"
+                    android:text="@string/volume"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textIsSelectable="false" />
+
+            <SeekBar
+                    android:id="@+id/device_volume_bar"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginLeft="0dp"
+                    android:layout_marginRight="0dp"
+                    android:layout_weight="1" />
+        </LinearLayout>
+
+        <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/device_volume_controls"
+                android:layout_alignParentRight="true">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/curChannelName" android:layout_alignParentLeft="true"
+                    android:layout_centerVertical="true" android:layout_marginLeft="15dp"
+                    android:textColor="@color/white" android:textSize="24sp" android:singleLine="true"/>
+            <Button
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pause"
+                    android:id="@+id/pauseButton" android:layout_toLeftOf="@+id/stopButton" android:visibility="gone"/>
+            <Button
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stop"
+                    android:id="@+id/stopButton"
+                    android:layout_alignParentRight="true"/>
+
+        </RelativeLayout>
+    </RelativeLayout>
     <ListView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:id="@+id/listView"/>
+            android:id="@+id/listView"
+            android:layout_above="@+id/reletiveControl"
+            android:layout_marginTop="5dp" android:layout_alignParentTop="true"/>
 </RelativeLayout>

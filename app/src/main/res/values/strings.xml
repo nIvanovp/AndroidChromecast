@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">CCLiveStream</string>
+    <string name="app_name">ChromeCast Tv</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="media_route_menu_title">Play on&#8230;</string>
     <string name="url_live_stream">http://s03.labs.h3.se:90/vlc/index.m3u-russia.php?method=channels_list</string>
     <string name="receiver_app_id"></string>
+    <string name="volume">Volume</string>
+    <string name="stop">Stop</string>
+    <string name="pause">Pause</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="err_device_connect">Please, connect to the device</string>
+    <string name="err_request_failed">The MediaRoute request has failed.</string>
 </resources>

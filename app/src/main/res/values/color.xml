@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="shadow_blue">#66FFFF</color>
+    <color name="button">#ffffffff</color>
+    <color name="button_pressed">#000000</color>
+    <color name="button_text">#000000</color>
+    <color name="button_text_pressed">#999999</color>
+    <color name="transparent">@android:color/transparent</color>
+    <color name="holo_blue">#FF33E5B5</color>
+    <color name="gray">@android:color/darker_gray</color>
+    <color name="dark_gray">#66888888</color>
+    <color name="holo_green_dark">#ff669900</color>
+    <color name="sliding_menu_background">#66aaaaaa</color>
+    <color name="action_bar_color">#FF0099CC</color>
+    <color name="blue">#3FA9F5</color>
+    <color name="wet_asphalt">#505050</color>
+    <color name="title_menu_color">#a33536</color>
+    <color name="text_on">#0099cd</color>
+    <color name="text_off">#303030</color>
+    <color name="bg_sliding_menu_item_pressed">#e2e2e2</color>
+    <color name="bg_sliding_menu_item_unpressed">#f5f5f5</color>
+    <color name="divier_listview">#d1d1d1</color>
+    <color name="actionbar_start_color">#000000</color>
+    <color name="actionbar_center_color">#ffffff</color>
+    <color name="actionbar_end_color">#000000</color>
+    <color name="main_background_color">#ebecf1</color>
+    <color name="main_blue_color">#33b5e5</color>
+    <color name="main_orange_color">#fc7d04</color>
+    <color name="wrapper">#75000000</color>
+    <color name="our_prod_gray">#a6a6a6</color>
+</resources>

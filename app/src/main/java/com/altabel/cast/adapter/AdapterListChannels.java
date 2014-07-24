@@ -77,7 +77,7 @@ public class AdapterListChannels extends ArrayAdapter<Channel> {
 
         Channel channel = getItem(position);
         recordHolder.nameChannel.setText(channel.getName());
-        recordHolder.summaryChannel.setText("summary");
+        recordHolder.summaryChannel.setText(channel.getDescription());
         recordHolder.imageView.setImageDrawable(null);
         ApplicationChromeCast.nostraImageLoader.displayImage(channel.getImageStrUrl(), recordHolder.imageView, options);
         return convertView;

@@ -6,7 +6,7 @@ import android.util.Log;
  * Created by nikolai on 30.12.13.
  */
 public class LoggerUtils {
-    public static boolean isDebug = true;
+    public static boolean isDebug = false;
     public final static String TAG = "CC_DEBUG";
     private final static String INFO_TAG = "INFO:";
     private final static String ERROR_TAG = "ERROR:";

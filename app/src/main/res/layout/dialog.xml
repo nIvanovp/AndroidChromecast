@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+              android:orientation="vertical"
+              android:background="@color/white">
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:id="@+id/linearDialog">
+    </LinearLayout>
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal|center_vertical">
+
+        <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/ll_dialog_info"
+                android:minHeight="60dp">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_dialog_info"
+                    android:textSize="20sp"
+                    android:text="Имя диалога"
+                    android:textColor="@color/black"
+                    android:layout_centerInParent="true"
+                    android:layout_marginLeft="5dp"/>
+        </RelativeLayout>
+        <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/resourseRelative"
+                android:layout_below="@+id/ll_dialog_info">
+
+        </RelativeLayout>
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_below="@+id/resourseRelative"
+                android:layout_centerHorizontal="true"
+                android:orientation="vertical">
+
+            <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/gray"
+                    android:id="@+id/graySeparateRight1"
+                    android:layout_marginTop="0dp"/>
+            <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:weightSum="100">
+
+                <RelativeLayout
+                        android:id="@+id/btn_positive"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="50"
+                        android:background="@drawable/dialog_btn_selector">
+                    <TextView
+                            android:id="@+id/positiveTextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/dialog_yes"
+                            android:textColor="@color/main_blue_color"
+                            android:layout_centerInParent="true"/>
+
+                </RelativeLayout>
+
+                <View
+                        android:layout_width="1dp"
+                        android:layout_height="wrap_content"
+                        android:background="@color/gray"
+                        android:id="@+id/graySeparateRight2"
+                        android:layout_marginTop="0dp"/>
+
+                <RelativeLayout
+                        android:id="@+id/btn_negative"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_weight="50"
+                        android:background="@drawable/dialog_btn_selector">
+                    <TextView
+                            android:id="@+id/negativeTextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/dialog_cancel"
+                            android:textColor="@color/main_orange_color"
+                            android:layout_centerInParent="true"/>
+                </RelativeLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </RelativeLayout>
+
+</LinearLayout>
